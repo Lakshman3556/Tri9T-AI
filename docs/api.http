@@ -1,0 +1,60 @@
+### CT-200 Medical Manual QA API - REST Client / HTTP Requests
+@baseUrl = http://localhost:8000
+
+### 1. Health Check
+GET {{baseUrl}}/health
+
+### 2. Ingest CT-200 Manual v1 (Local convenience endpoint)
+POST {{baseUrl}}/ingest/local?path=data/ct200_manual.pdf
+Content-Type: application/json
+
+### 3. List Documents
+GET {{baseUrl}}/documents
+
+### 4. List Top-Level Sections (Level 1)
+# Replace {{doc_id}} with the returned document ID
+GET {{baseUrl}}/documents/{{doc_id}}/sections
+
+### 5. Get Document Tree (Hierarchy)
+GET {{baseUrl}}/documents/{{doc_id}}/tree?include_text=false
+
+### 6. Search for Normalized Text (Search 'profile' or 'cuff')
+GET {{baseUrl}}/search?q=profile&scope=body
+
+### 7. Create Version-Pinned Selection
+# Pins sections 3.2 and 4.2 to Version 1
+POST {{baseUrl}}/selections
+Content-Type: application/json
+
+{
+  "name": "Cuff and Safety Verification",
+  "items": [
+    {"node_id": "{{node_3_2_id}}", "version": 1},
+    {"node_id": "{{node_4_2_id}}", "version": 1}
+  ]
+}
+
+### 8. View Reconstructed Text for Selection (Prompt Input)
+GET {{baseUrl}}/selections/{{selection_id}}/text
+
+### 9. Generate QA Test Cases (LLM)
+POST {{baseUrl}}/selections/{{selection_id}}/generate?force=false
+
+### 10. Re-ingest CT-200 Manual v2 (New Version)
+POST {{baseUrl}}/ingest/local?path=data/ct200_manual_v2.pdf&document_id={{doc_id}}
+
+### 11. View Whole-Document Diff (v1 vs v2)
+GET {{baseUrl}}/documents/{{doc_id}}/changes?from_version=1&to_version=2
+
+### 12. Check Specific Node Changes with Significance
+GET {{baseUrl}}/nodes/{{node_4_2_id}}/changes?from_version=1&to_version=2
+
+### 13. Dynamic Staleness Retrieval (against latest version 2)
+# Notice status changes to 'likely_stale' because E3 auto-deflate changed from 2s to 1.5s
+GET {{baseUrl}}/selections/{{selection_id}}/test-cases?against_version=2
+
+### 14. Query All Test Cases referencing a specific Node
+GET {{baseUrl}}/nodes/{{node_4_2_id}}/test-cases?only_stale=false
+
+### 15. View Document Impact Summary
+GET {{baseUrl}}/documents/{{doc_id}}/impact?from_version=1&to_version=2
